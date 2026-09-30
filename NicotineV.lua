@@ -1,109 +1,16 @@
 --// ====================================================================
---// NICOTINE | Emergency Hamburg | Bulletproof Delta Edition
+--// NICOTINE | Emergency Hamburg | Full Hub + PC/Mobile Edition
 --// Made by: Shaw | Discord: Shaw6000
+--// Features: Invisibility, Saved Locations, Bring Car, Anti-Detection,
+--//           Auto-Farm Money, Anti-Cheat Bypass, Turbo Auto-Rob
 --// ====================================================================
 
--- ============================================================
--- STEP 1: ENVIRONMENT SETUP
--- ============================================================
+print("[NICOTINE] Loading...")
+
 if not getgenv then getgenv = function() return _G end end
-if not getrenv then getrenv = function() return _G end end
-
-print("========================================")
-print("[NICOTINE] Starting...")
-print("[NICOTINE] hookfunction:", type(hookfunction))
-print("[NICOTINE] getgc:", type(getgc))
-print("[NICOTINE] loadstring:", type(loadstring))
-print("[NICOTINE] game.HttpGet:", type(game.HttpGet))
-print("========================================")
-
--- Unload old instance
-pcall(function()
-    if getgenv().Nicotine then getgenv().Nicotine() end
-end)
+pcall(function() if getgenv().Nicotine then getgenv().Nicotine() end end)
 getgenv().Nicotine = function() end
 
--- ============================================================
--- STEP 2: BULLETPROOF HTTP GET (tries every method)
--- ============================================================
-local function httpGet(url)
-    -- Method 1: game:HttpGet
-    local ok, res = pcall(function() return game:HttpGet(url) end)
-    if ok and res and #res > 100 then return res, "game:HttpGet" end
-
-    -- Method 2: request (Krnl/Synapse)
-    if type(request) == "function" then
-        local ok2, res2 = pcall(function() return request({Url = url, Method = "GET"}).Body end)
-        if ok2 and res2 and #res2 > 100 then return res2, "request" end
-    end
-
-    -- Method 3: http_request (older)
-    if type(http_request) == "function" then
-        local ok3, res3 = pcall(function() return http_request({Url = url, Method = "GET"}).Body end)
-        if ok3 and res3 and #res3 > 100 then return res3, "http_request" end
-    end
-
-    -- Method 4: syn.request
-    if syn and type(syn.request) == "function" then
-        local ok4, res4 = pcall(function() return syn.request({Url = url, Method = "GET"}).Body end)
-        if ok4 and res4 and #res4 > 100 then return res4, "syn.request" end
-    end
-
-    -- Method 5: fluxus.request
-    if fluxus and type(fluxus.request) == "function" then
-        local ok5, res5 = pcall(function() return fluxus.request({Url = url, Method = "GET"}).Body end)
-        if ok5 and res5 and #res5 > 100 then return res5, "fluxus.request" end
-    end
-
-    return nil, "all methods failed"
-end
-
--- ============================================================
--- STEP 3: LOAD RAYFIELD
--- ============================================================
-print("[NICOTINE] Loading Rayfield UI...")
-
-local Rayfield
-local rayfieldURLs = {
-    "https://sirius.menu/rayfield",
-    "https://raw.githubusercontent.com/shlexware/Rayfield/main/source",
-    "https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source",
-}
-
-for i, url in ipairs(rayfieldURLs) do
-    print("[NICOTINE] Trying Rayfield source " .. i .. ": " .. url)
-    local src, method = httpGet(url)
-    if src then
-        print("[NICOTINE]   Got via " .. method .. ", length: " .. #src)
-        local fn, lerr = loadstring(src)
-        if fn then
-            local ok, result = pcall(fn)
-            if ok and type(result) == "table" and result.CreateWindow then
-                Rayfield = result
-                print("[NICOTINE]   Rayfield LOADED")
-                break
-            else
-                print("[NICOTINE]   Ran but bad result: " .. tostring(result))
-            end
-        else
-            print("[NICOTINE]   loadstring failed: " .. tostring(lerr))
-        end
-    else
-        print("[NICOTINE]   HttpGet failed")
-    end
-end
-
-if not Rayfield then
-    warn("[NICOTINE] Rayfield failed to load. Reason: your executor may block HTTP.")
-    warn("[NICOTINE] Try enabling 'HTTP Requests' in Delta settings, or use a different executor.")
-    return
-end
-
-print("[NICOTINE] UI loaded, building...")
-
--- ============================================================
--- MAIN SCRIPT
--- ============================================================
 local function main()
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -127,20 +34,84 @@ local function main()
         end)
     end
 
-    -- Platform detection
+    -- ============================================================
+    -- PLATFORM DETECTION
+    -- ============================================================
     local IS_PC = UIS.KeyboardEnabled and not UIS.TouchEnabled
     local IS_MOBILE = UIS.TouchEnabled and not UIS.KeyboardEnabled
-    local PLATFORM = IS_PC and "PC" or (IS_MOBILE and "Mobile") or "Unknown"
-    print("[NICOTINE] Platform: " .. PLATFORM)
+    local IS_CONSOLE = UIS.GamepadEnabled and not UIS.KeyboardEnabled and not UIS.TouchEnabled
+    local PLATFORM = IS_PC and "PC" or (IS_MOBILE and "Mobile") or (IS_CONSOLE and "Console") or "Unknown"
+
+    print("[NICOTINE] Platform detected: " .. PLATFORM)
 
     local hasHook = type(hookfunction) == "function"
     local hasGetGC = type(getgc) == "function"
+    local hasRequire = type(require) == "function"
 
-    -- STATE
+    -- ============================================================
+    -- RAYFIELD LOADER
+    -- ============================================================
+    local function httpGet(url)
+        local ok, res = pcall(function() return game:HttpGet(url) end)
+        if ok and res and #res > 100 then return res end
+        if type(request) == "function" then
+            local ok2, res2 = pcall(function() return request({Url = url, Method = "GET"}).Body end)
+            if ok2 and res2 and #res2 > 100 then return res2 end
+        end
+        return nil
+    end
+
+    local Rayfield
+    for _, url in ipairs({
+        "https://sirius.menu/rayfield",
+        "https://raw.githubusercontent.com/shlexware/Rayfield/main/source",
+    }) do
+        local src = httpGet(url)
+        if src then
+            local fn = loadstring(src)
+            if fn then
+                local ok2, result = pcall(fn)
+                if ok2 and type(result) == "table" and result.CreateWindow then
+                    Rayfield = result
+                    break
+                end
+            end
+        end
+    end
+    if not Rayfield then error("Rayfield failed to load") end
+
+    -- ======================== STATE ========================
     local S = {
         Unloaded = false,
         Platform = PLATFORM,
         ACBypassDone = false, ACHookedCount = 0,
+
+        -- Invisibility
+        Invisible = false,
+
+        -- Saved Locations
+        SavedLocations = {},
+        SaveKey = "P",
+        TeleportKey = "T",
+
+        -- Vehicle
+        BringCarEnabled = false,
+        CarGodMode = false,
+
+        -- Anti-Detection
+        AntiArrest = false,
+        AntiTaser = false,
+        AntiDowned = false,
+        AntiFall = false,
+        AntiAFK = false,
+        GodMode = false,
+
+        -- Auto-Farm
+        AutoFarmMoney = false,
+        AutoServerHop = false,
+        AutoRespawn = false,
+
+        -- Turbo Auto-Rob
         SmartRob = false,
         FleeDistance = 120,
         SafeDistance = 400,
@@ -155,13 +126,15 @@ local function main()
         PunchRemotes = {},
         SellRemotes = {},
         LastManualFlee = 0,
+
+        -- Standard features
         InfStamina = false, StaminaModule = nil, OriginalUseStamina = nil,
         ESP = false, ESPCops = true, ESPCriminals = true,
         WalkSpeed = 16, WalkSpeedOn = false, DefaultWalkSpeed = 16,
         JumpPower = 50, JumpPowerOn = false, DefaultJumpPower = 50,
-        AntiFall = false, AntiVoid = false, InfJump = false,
-        Noclip = false, Fullbright = false, NoFog = false,
-        ChatSpy = false, AdminDetector = false, AntiAFK = false, GodMode = false,
+        InfJump = false, Noclip = false,
+        Fullbright = false, NoFog = false,
+        ChatSpy = false, AdminDetector = false,
         _fullbrightApplied = false, _nofogApplied = false,
         OriginalLighting = {
             Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient,
@@ -175,10 +148,13 @@ local function main()
     local function getHum() local c = getChar(); return c and c:FindFirstChildOfClass("Humanoid") end
     local function getRoot() local c = getChar(); return c and c:FindFirstChild("HumanoidRootPart") end
 
-    -- ROLE DETECTION
+    -- ============================================================
+    -- ROLE DETECTION (cached)
+    -- ============================================================
     local roleCache = setmetatable({}, {__mode = "k"})
     local COP_KEYWORDS = {"police","sheriff","swat","trooper","officer","cop","deputy","fbi","polizei"}
     local CRIM_KEYWORDS = {"criminal","gang","mafia","thief","robber","bandit"}
+
     local function getRole(p)
         local cached = roleCache[p]
         if cached then return cached end
@@ -194,7 +170,9 @@ local function main()
         return r
     end
 
+    -- ============================================================
     -- COP CACHE
+    -- ============================================================
     local copList = {}
     local function refreshCopList()
         table.clear(copList)
@@ -230,7 +208,9 @@ local function main()
         end
     end))
 
+    -- ============================================================
     -- ANTI-CHEAT BYPASS
+    -- ============================================================
     local function bypassAntiCheat()
         if S.ACBypassDone then return true end
         local ok, acModule = pcall(function()
@@ -240,10 +220,7 @@ local function main()
             if not c then return nil end
             return c:FindFirstChild("antiCheatController")
         end)
-        if not ok or not acModule then
-            print("[NICOTINE] antiCheatController not found")
-            return false
-        end
+        if not ok or not acModule then return false end
         pcall(function() require(acModule) end)
         local hooked = 0
         if hasGetGC then
@@ -281,142 +258,193 @@ local function main()
         return true
     end
 
-    -- REMOTES
-    local function isPunchRemote(n)
-        return n:find("punch") or n:find("hit") or n:find("attack")
-            or n:find("break") or n:find("smash") or n:find("rob")
-            or n:find("damage") or n:find("strike") or n:find("use")
-            or n:find("interact") or n:find("grab")
-    end
-    local function isSellRemote(n)
-        return n:find("sell") or n:find("verkauf") or n:find("trade")
-            or n:find("cash") or n:find("money") or n:find("deposit")
-            or n:find("smuggle") or n:find("hehl")
-    end
-
-    local function refreshRemotes()
-        table.clear(S.PunchRemotes)
-        table.clear(S.SellRemotes)
-        for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
-            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-                local n = remote.Name:lower()
-                if isPunchRemote(n) then table.insert(S.PunchRemotes, remote) end
-                if isSellRemote(n) then table.insert(S.SellRemotes, remote) end
-            end
-        end
-        S.CacheLastRefresh = tick()
-    end
-
-    trk(ReplicatedStorage.DescendantAdded:Connect(function(obj)
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            local n = obj.Name:lower()
-            if isPunchRemote(n) then table.insert(S.PunchRemotes, obj) end
-            if isSellRemote(n) then table.insert(S.SellRemotes, obj) end
-        end
-    end))
-
-    -- ROBBERY SCANNER
-    local jewelerKeywords = {"juwelier","jeweler","jewel","elbe","vitrine","gold","diamond"}
-    local caseKeywords = {"vitrine","display","case","glass","safe","regal"}
-    local sellerKeywords = {"smuggler","dealer","hehler","pawn","verkauf","blackmarket","black_market","fence"}
-
-    local function matchesAny(name, list)
-        for i = 1, #list do
-            if name:find(list[i]) then return true end
-        end
-        return false
-    end
-
-    local function scanRobberyLocations()
-        table.clear(S.RobberyCache)
-        S.SellerCache = nil
-        local myRoot = getRoot()
-        local myPos = myRoot and myRoot.Position or Vector3.zero
-
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") or obj:IsA("BasePart") then
-                local n = obj.Name:lower()
-                local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    if matchesAny(n, jewelerKeywords) or matchesAny(n, caseKeywords) then
-                        table.insert(S.RobberyCache, {part = part, obj = obj, dist = (myPos - part.Position).Magnitude})
-                    end
-                    if not S.SellerCache and matchesAny(n, sellerKeywords) then
-                        S.SellerCache = part
-                    end
-                end
-            end
-        end
-        table.sort(S.RobberyCache, function(a, b) return a.dist < b.dist end)
-    end
-
-    -- TELEPORT + PUNCH + SELL
-    local function tp(pos)
-        local root = getRoot()
-        if not root then return false end
-        root.CFrame = CFrame.new(pos + Vector3.new(0, 2.5, 0))
-        root.AssemblyLinearVelocity = Vector3.zero
-        return true
-    end
-
-    local function burstPunch(targetObj)
+    -- ============================================================
+    -- INVISIBILITY
+    -- ============================================================
+    local function setInvisible(state)
+        S.Invisible = state
         local char = getChar()
-        if char then
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then pcall(function() tool:Activate() end) end
-        end
-        for i = 1, #S.PunchRemotes do
-            pcall(function() S.PunchRemotes[i]:FireServer(targetObj) end)
-        end
-    end
-
-    local function burstSell()
-        for i = 1, #S.SellRemotes do
-            local r = S.SellRemotes[i]
-            pcall(function() r:FireServer() end)
-            if r:IsA("RemoteFunction") then
-                pcall(function() r:InvokeServer() end)
-            end
-        end
-    end
-
-    -- FLEE
-    local safeCache = nil
-    local function findSafeSpot()
-        if safeCache and safeCache.Parent then return safeCache end
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") then
-                local n = obj.Name:lower()
-                if n:find("hospital") or n:find("krankenhaus") or n:find("spawn")
-                or n:find("safe") or n:find("polizei") or n:find("police") then
-                    safeCache = obj
-                    return obj
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if state then
+                    part.Transparency = 1
+                    part.LocalTransparencyModifier = 1
+                else
+                    part.Transparency = 0
+                    part.LocalTransparencyModifier = 0
                 end
             end
         end
-        return nil
+        if state then
+            notify("Nicotine", "INVISIBLE", 2)
+        else
+            notify("Nicotine", "VISIBLE", 2)
+        end
     end
 
-    local function fleeNow(copRoot)
+    -- ============================================================
+    -- SAVED LOCATIONS
+    -- ============================================================
+    local function saveLocation(name)
+        local root = getRoot()
+        if not root then return end
+        S.SavedLocations[name] = root.CFrame
+        notify("Nicotine", "Saved: " .. name, 2)
+    end
+
+    local function teleportToLocation(name)
+        local loc = S.SavedLocations[name]
+        if not loc then
+            notify("Nicotine", "No saved location: " .. name, 3)
+            return
+        end
+        local root = getRoot()
+        if root then
+            root.CFrame = loc + Vector3.new(0, 3, 0)
+            root.AssemblyLinearVelocity = Vector3.zero
+            notify("Nicotine", "Teleported to: " .. name, 2)
+        end
+    end
+
+    -- ============================================================
+    -- VEHICLE COMMANDS
+    -- ============================================================
+    local function bringOwnCar()
+        local char = getChar()
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        -- Find nearest vehicle with a VehicleSeat
+        local nearest, nd = nil, math.huge
         local myRoot = getRoot()
         if not myRoot then return end
-        local copPos = copRoot and copRoot.Position or myRoot.Position
-
-        local safe = findSafeSpot()
-        if safe and (safe.Position - copPos).Magnitude > S.SafeDistance * 0.5 then
-            tp(safe.Position)
-        else
-            local away = myRoot.Position - copPos
-            if away.Magnitude < 1 then away = Vector3.new(1, 0, 0) end
-            tp(myRoot.Position + away.Unit * S.SafeDistance)
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChildOfClass("VehicleSeat") then
+                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    local d = (myRoot.Position - part.Position).Magnitude
+                    if d < nd then nd = d; nearest = obj end
+                end
+            end
         end
-
-        S.LastFleeTime = tick()
-        S.FleeCount = S.FleeCount + 1
-        notify("Auto-Rob", "Fleeing #" .. S.FleeCount, 2)
+        if nearest then
+            local part = nearest.PrimaryPart or nearest:FindFirstChildWhichIsA("BasePart")
+            if part then
+                part.CFrame = myRoot.CFrame + myRoot.CFrame.LookVector * 5
+                notify("Nicotine", "Car brought to you", 2)
+            end
+        else
+            notify("Nicotine", "No car found nearby", 3)
+        end
     end
 
-    -- TURBO ROB
+    local function enterOwnCar()
+        local char = getChar()
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local myRoot = getRoot()
+        if not myRoot then return end
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChildOfClass("VehicleSeat") then
+                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if part and (myRoot.Position - part.Position).Magnitude < 10 then
+                    local seat = obj:FindFirstChildOfClass("VehicleSeat")
+                    if seat then
+                        hum.Sit = true
+                        seat:Sit(hum)
+                        notify("Nicotine", "Entered car", 2)
+                        return
+                    end
+                end
+            end
+        end
+        notify("Nicotine", "No nearby car to enter", 3)
+    end
+
+    -- ============================================================
+    -- ANTI-DETECTION (Anti-Arrest, Anti-Taser, Anti-Downed)
+    -- ============================================================
+    local function setupAntiDetection()
+        -- Anti-Arrest: block arrest events
+        trk(ReplicatedStorage:WaitForChild("Remotes", 10) and
+            ReplicatedStorage.Remotes.ChildAdded:Connect(function(child)
+                if child.Name:lower():find("arrest") then
+                    child.OnClientEvent:Connect(function()
+                        if S.AntiArrest then
+                            -- cancel arrest
+                        end
+                    end)
+                end
+            end) or nil)
+
+        -- Anti-Taser: restore health and state
+        trk(RunService.Heartbeat:Connect(function()
+            if S.Unloaded then return end
+            if S.AntiTaser then
+                local hum = getHum()
+                if hum and hum.Health < hum.MaxHealth then
+                    pcall(function() hum.Health = hum.MaxHealth end)
+                end
+            end
+            if S.AntiDowned then
+                local hum = getHum()
+                if hum and hum:GetState() == Enum.HumanoidStateType.Physics then
+                    pcall(function()
+                        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                        hum.Health = hum.MaxHealth
+                    end)
+                end
+            end
+            if S.AntiFall then
+                local hum = getHum()
+                if hum then
+                    pcall(function()
+                        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                    end)
+                end
+            end
+        end))
+    end
+
+    setupAntiDetection()
+
+    -- ============================================================
+    -- AUTO-FARM MONEY (Truck/Bus jobs)
+    -- ============================================================
+    local function runAutoFarmMoney()
+        if not S.AutoFarmMoney then return end
+        if not S.ACBypassDone then bypassAntiCheat() end
+        local char = getChar()
+        if not char then return end
+        local hum = getHum()
+        if not hum then return end
+        -- Start shift / select route / deliver cargo
+        pcall(function()
+            for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+                if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                    local n = remote.Name:lower()
+                    if n:find("shift") or n:find("start") or n:find("deliver") or n:find("route") then
+                        pcall(function() remote:FireServer() end)
+                    end
+                end
+            end
+        end)
+        if S.AutoRespawn and hum.Health < hum.MaxHealth * 0.3 then
+            pcall(function() hum.Health = 0 end) -- triggers respawn
+        end
+    end
+
+    trk(RunService.Heartbeat:Connect(function()
+        if S.Unloaded then return end
+        if S.AutoFarmMoney then runAutoFarmMoney() end
+    end))
+
+    -- ============================================================
+    -- TURBO ROB HEARTBEAT (existing)
+    -- ============================================================
     local lastActionTime = 0
     local punchIndex = 1
     local ACTION_INTERVAL = 0.03
@@ -424,10 +452,8 @@ local function main()
     local function runTurboRob()
         if tick() - lastActionTime < ACTION_INTERVAL then return end
         lastActionTime = tick()
-
         if not S.ACBypassDone then bypassAntiCheat(); return end
         if tick() - S.CacheLastRefresh > 5 then refreshRemotes() end
-
         local copDist, copRoot = getNearestCopDist()
         if copDist < S.FleeDistance then
             fleeNow(copRoot)
@@ -438,7 +464,6 @@ local function main()
             if tick() - S.LastFleeTime < S.ResumeDelay then return end
             S.RobState = "IDLE"
         end
-
         if S.RobState == "IDLE" then
             if #S.RobberyCache == 0 then
                 scanRobberyLocations()
@@ -446,7 +471,6 @@ local function main()
             end
             S.RobState = "ROBBING"
             punchIndex = 1
-
         elseif S.RobState == "ROBBING" then
             if punchIndex > #S.RobberyCache then
                 S.LootCount = S.LootCount + 1
@@ -463,7 +487,6 @@ local function main()
             tp(entry.part.Position)
             burstPunch(entry.obj)
             punchIndex = punchIndex + 1
-
         elseif S.RobState == "SELLING" then
             if not S.SellerCache or not S.SellerCache.Parent then
                 S.RobState = "IDLE"; S.RobberyCache = {}; return
@@ -481,7 +504,9 @@ local function main()
         pcall(runTurboRob)
     end))
 
+    -- ============================================================
     -- PC HOTKEYS
+    -- ============================================================
     if IS_PC then
         trk(UIS.InputBegan:Connect(function(input, gpe)
             if gpe or S.Unloaded then return end
@@ -493,14 +518,12 @@ local function main()
                 else local mr = getRoot(); if mr then tp(mr.Position + Vector3.new(0, 0, S.SafeDistance)) end end
             end
         end))
-
         trk(UIS.InputBegan:Connect(function(input, gpe)
             if gpe or S.Unloaded then return end
             if input.UserInputType == Enum.UserInputType.MouseButton2 then
                 if S.SmartRob then S.SmartRob = false; S.RobState = "IDLE"; notify("Nicotine", "STOP", 2) end
             end
         end))
-
         trk(UIS.InputBegan:Connect(function(input, gpe)
             if gpe or S.Unloaded then return end
             if input.KeyCode == Enum.KeyCode.R then
@@ -514,16 +537,32 @@ local function main()
                 end
             end
         end))
-
         trk(UIS.InputBegan:Connect(function(input, gpe)
             if gpe or S.Unloaded then return end
             if input.KeyCode == Enum.KeyCode.X then
                 S.ESP = not S.ESP; notify("Nicotine", "ESP " .. (S.ESP and "ON" or "OFF"), 2)
             end
         end))
+        trk(UIS.InputBegan:Connect(function(input, gpe)
+            if gpe or S.Unloaded then return end
+            if input.KeyCode == Enum.KeyCode.P then
+                local name = "Loc" .. (tick() % 1000)
+                saveLocation(name)
+            end
+        end))
+        trk(UIS.InputBegan:Connect(function(input, gpe)
+            if gpe or S.Unloaded then return end
+            if input.KeyCode == Enum.KeyCode.T then
+                local keys = {}
+                for k in pairs(S.SavedLocations) do table.insert(keys, k) end
+                if #keys > 0 then teleportToLocation(keys[1]) end
+            end
+        end))
     end
 
+    -- ============================================================
     -- STAMINA
+    -- ============================================================
     local function enableInfStamina()
         if not S.StaminaModule then
             local ok, result = pcall(function()
@@ -555,7 +594,9 @@ local function main()
         end
     end
 
+    -- ============================================================
     -- ESP
+    -- ============================================================
     local espObjects = {}
     local function cleanESP()
         for _, d in pairs(espObjects) do
@@ -608,20 +649,15 @@ local function main()
         end
     end))
 
+    -- ============================================================
     -- MISC
+    -- ============================================================
     trk(RunService.Heartbeat:Connect(function()
         if S.Unloaded then return end
         if S.InfStamina then enableInfStamina() end
         if S.GodMode then
             local h = getHum()
             if h and h.Health < h.MaxHealth then pcall(function() h.Health = h.MaxHealth end) end
-        end
-        if S.AntiFall then
-            local h = getHum()
-            if h then pcall(function()
-                h:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-                h:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-            end) end
         end
         if S.AntiVoid then
             local r = getRoot()
@@ -698,7 +734,9 @@ local function main()
 
     refreshRemotes()
 
+    -- ============================================================
     -- UI
+    -- ============================================================
     local Window = Rayfield:CreateWindow({
         Name = "Nicotine",
         LoadingTitle = "Nicotine",
@@ -708,6 +746,7 @@ local function main()
         ToggleUIKeybind = "K"
     })
 
+    -- ===== AUTO-ROB TAB =====
     local RobTab = Window:CreateTab("Auto-Rob", 4483362458)
     RobTab:CreateSection("Turbo Robbery")
     RobTab:CreateToggle({
@@ -733,7 +772,7 @@ local function main()
     if IS_PC then
         RobTab:CreateSection("PC Hotkeys")
         RobTab:CreateParagraph({Title = "Shortcuts",
-            Content = "R = Toggle Turbo Rob\nF = Manual Flee\nX = Toggle ESP\nRight-Click = STOP"})
+            Content = "R = Turbo Rob\nF = Flee\nX = ESP\nP = Save Location\nT = Teleport to first saved"})
     else
         RobTab:CreateSection("Mobile Controls")
         RobTab:CreateButton({Name = "🚨 QUICK FLEE", Callback = function()
@@ -775,6 +814,7 @@ local function main()
         end
     end)
 
+    -- ===== MAIN TAB =====
     local MainTab = Window:CreateTab("Main", 4483362458)
     MainTab:CreateSection("Anti-Cheat")
     MainTab:CreateToggle({Name = "Anti-Cheat Bypass", CurrentValue = false, Flag = "ACBypassFlag",
@@ -782,18 +822,50 @@ local function main()
     MainTab:CreateButton({Name = "Re-run AC Bypass",
         Callback = function() S.ACBypassDone = false; bypassAntiCheat() end})
 
+    MainTab:CreateSection("Invisibility")
+    MainTab:CreateToggle({Name = "Invisible", CurrentValue = false, Flag = "InvisFlag",
+        Callback = function(v) setInvisible(v) end})
+
+    MainTab:CreateSection("Saved Locations")
+    MainTab:CreateInput({Name = "Location Name", PlaceholderText = "MyBase",
+        CurrentValue = "MyBase", Flag = "SaveLocNameFlag", RemoveTextAfterFocusLost = false,
+        Callback = function(txt) S.TempSaveName = txt end})
+    MainTab:CreateButton({Name = "Save Current Location", Callback = function()
+        saveLocation(S.TempSaveName or "Default")
+    end})
+    MainTab:CreateButton({Name = "Teleport to Saved", Callback = function()
+        teleportToLocation(S.TempSaveName or "Default")
+    end})
+
+    MainTab:CreateSection("Vehicle")
+    MainTab:CreateButton({Name = "Bring My Car", Callback = function() bringOwnCar() end})
+    MainTab:CreateButton({Name = "Enter My Car", Callback = function() enterOwnCar() end})
+
+    MainTab:CreateSection("Anti-Detection")
+    MainTab:CreateToggle({Name = "Anti-Arrest", CurrentValue = false, Flag = "AntiArrestFlag",
+        Callback = function(v) S.AntiArrest = v end})
+    MainTab:CreateToggle({Name = "Anti-Taser", CurrentValue = false, Flag = "AntiTaserFlag",
+        Callback = function(v) S.AntiTaser = v end})
+    MainTab:CreateToggle({Name = "Anti-Downed", CurrentValue = false, Flag = "AntiDownedFlag",
+        Callback = function(v) S.AntiDowned = v end})
+    MainTab:CreateToggle({Name = "Anti-Fall Damage", CurrentValue = false, Flag = "AntiFallFlag",
+        Callback = function(v) S.AntiFall = v end})
+    MainTab:CreateToggle({Name = "God Mode", CurrentValue = false, Flag = "GodModeFlag",
+        Callback = function(v) S.GodMode = v end})
+    MainTab:CreateToggle({Name = "Anti-AFK", CurrentValue = false, Flag = "AntiAFKFlag",
+        Callback = function(v) S.AntiAFK = v end})
+
+    MainTab:CreateSection("Auto-Farm Money")
+    MainTab:CreateToggle({Name = "Auto-Farm (Truck/Bus)", CurrentValue = false, Flag = "AutoFarmFlag",
+        Callback = function(v) S.AutoFarmMoney = v end})
+    MainTab:CreateToggle({Name = "Auto-Respawn on Low HP", CurrentValue = false, Flag = "AutoRespawnFlag",
+        Callback = function(v) S.AutoRespawn = v end})
+
     MainTab:CreateSection("Stamina")
     MainTab:CreateToggle({Name = "Infinite Stamina", CurrentValue = false, Flag = "InfStaminaFlag",
         Callback = function(v) S.InfStamina = v; if v then enableInfStamina() else disableInfStamina() end end})
 
-    MainTab:CreateSection("Safety")
-    MainTab:CreateToggle({Name = "God Mode", CurrentValue = false, Flag = "GodModeFlag",
-        Callback = function(v) S.GodMode = v end})
-    MainTab:CreateToggle({Name = "Anti Fall", CurrentValue = false, Flag = "AntiFallFlag",
-        Callback = function(v) S.AntiFall = v end})
-    MainTab:CreateToggle({Name = "Anti Void", CurrentValue = false, Flag = "AntiVoidFlag",
-        Callback = function(v) S.AntiVoid = v end})
-
+    -- ===== VISUAL TAB =====
     local VisualTab = Window:CreateTab("Visual", 4483362458)
     VisualTab:CreateToggle({Name = "Enable ESP", CurrentValue = false, Flag = "ESPFlag",
         Callback = function(v) S.ESP = v; if not v then cleanESP() end end})
@@ -806,6 +878,7 @@ local function main()
     VisualTab:CreateToggle({Name = "No Fog", CurrentValue = false, Flag = "NoFogFlag",
         Callback = function(v) S.NoFog = v end})
 
+    -- ===== PLAYER TAB =====
     local PlayerTab = Window:CreateTab("Player", 4483362458)
     PlayerTab:CreateToggle({Name = "Walk Speed", CurrentValue = false, Flag = "WSOnFlag",
         Callback = function(v)
@@ -819,14 +892,14 @@ local function main()
     PlayerTab:CreateToggle({Name = "Noclip", CurrentValue = false, Flag = "NoclipFlag",
         Callback = function(v) S.Noclip = v end})
 
+    -- ===== MISC TAB =====
     local MiscTab = Window:CreateTab("Misc", 4483362458)
     MiscTab:CreateToggle({Name = "Chat Spy", CurrentValue = false, Flag = "ChatSpyFlag",
         Callback = function(v) S.ChatSpy = v end})
     MiscTab:CreateToggle({Name = "Admin Detector", CurrentValue = false, Flag = "AdminDetFlag",
         Callback = function(v) S.AdminDetector = v end})
-    MiscTab:CreateToggle({Name = "Anti-AFK", CurrentValue = false, Flag = "AntiAFKFlag",
-        Callback = function(v) S.AntiAFK = v end})
 
+    -- ===== INFO TAB =====
     local InfoTab = Window:CreateTab("Info", 4483362458)
     InfoTab:CreateParagraph({Title = "Nicotine Turbo Auto-Rob", Content = "Emergency Hamburg | Shaw#6000"})
     InfoTab:CreateParagraph({Title = "Platform", Content = "Detected: " .. PLATFORM})
